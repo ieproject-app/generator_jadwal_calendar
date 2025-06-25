@@ -4,62 +4,48 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Penjadwalan Regu Jaga</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .markdown-calendar { width: 100%; background: #fff; font-family: 'Fira Mono', 'Consolas', monospace; font-size: 15px; }
-    .markdown-calendar th, .markdown-calendar td {
-      border: 1px solid #e5e7eb;
-      text-align: left;
-      vertical-align: top;
-      min-width: 80px;
-      min-height: 55px;
-      padding: 4px 7px 2px 7px;
-      line-height: 1.3;
-      font-size: 15px;
-    }
-    .markdown-calendar th {
-      background: #f8fafc;
-      font-weight: bold;
-      text-align: center;
-    }
-    .markdown-calendar td {
-      background: #fff;
-      font-weight: normal;
-      vertical-align: top;
-    }
-    .markdown-calendar .libur {
-      background: #fee2e2 !important;
-      color: #c81e1e !important;
-      font-weight: bold;
-    }
-    .markdown-calendar .tanggal {
-      font-weight: bold;
-      font-size: 16px;
-      display: block;
-      margin-bottom: 2px;
-    }
-    .markdown-calendar .regu {
-      color: #1d4ed8;
-      font-size: 14px;
-      line-height: 1.1;
-      font-weight: 500;
-      display: block;
-    }
-    .markdown-calendar .regu2 {
-      color: #059669;
-      font-size: 14px;
-      line-height: 1.1;
-      font-weight: 500;
-      display: block;
-    }
-    .markdown-calendar .icon-libur {
-      font-size: 15px;
-      margin-right: 3px;
-    }
-    @media (max-width: 900px) {
-      .markdown-calendar th, .markdown-calendar td { min-width:44px; font-size: 12px; padding: 2px 4px;}
-      .markdown-calendar .tanggal { font-size: 13px;}
-      .markdown-calendar .regu, .markdown-calendar .regu2 { font-size: 12px;}
+    .sticky-header { position: sticky; top: 0; background: #f8fafc; z-index: 2;}
+    .sticky-month { position: sticky; top: 0; z-index: 3; background: #e0e7ef;}
+    th, td { font-size: 14px !important; padding: 0.65rem 1rem !important; letter-spacing: 0.01em;}
+    table { border-collapse: collapse; }
+    thead th { border-bottom: 1px solid #cbd5e1; }
+    td, th { border: 1px solid #e5e7eb; }
+    .holiday-row { background: #fee2e2 !important; color: #dc2626 !important;}
+    .empty-cell { background: #fff; border: none;}
+    .panel-month { min-width:380px; background:white; border-radius:8px; box-shadow:0 1px 4px #0001; padding:0.5rem 0.5rem 1.4rem 0.5rem; margin-bottom:2rem;}
+    .panel-month .sticky-month { font-size: 1rem; font-weight: 600; margin-bottom: 10px; text-align: center;}
+    .filter-bar select, .filter-bar label { font-size: 13px; }
+    .filter-bar input[type="checkbox"] { width: 14px; height: 14px; }
+    .filter-bar { gap: 0.7rem; }
+    .row-alt { background: #f3f4f6 !important; }
+    #notifToast { transition: opacity 0.3s; }
+    
+    /* Calendar specific styles */
+    .calendar-container { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); margin-bottom: 2rem; overflow: hidden; }
+    .calendar-header { background: #e0e7ef; padding: 1rem; text-align: center; font-weight: 600; font-size: 1.1rem; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .calendar-day-header { background: #f1f5f9; padding: 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-bottom: 1px solid #e2e8f0; }
+    .calendar-day { min-height: 100px; border: 1px solid #e2e8f0; padding: 0.5rem; position: relative; }
+    .calendar-day.other-month { background: #f8fafc; color: #94a3b8; }
+    .calendar-day.holiday { background: #fee2e2; }
+    .calendar-day.today { background: #dbeafe; border-color: #3b82f6; }
+    .calendar-date { font-weight: 600; margin-bottom: 0.25rem; }
+    .calendar-guards { font-size: 0.75rem; line-height: 1.2; }
+    .guard-item { background: #e0f2fe; padding: 0.125rem 0.25rem; margin: 0.125rem 0; border-radius: 0.25rem; }
+    .guard-item.holiday { background: #fecaca; }
+    .view-toggle { background: white; border-radius: 0.5rem; padding: 0.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .view-toggle button { padding: 0.5rem 1rem; border-radius: 0.25rem; font-size: 0.875rem; transition: all 0.2s; }
+    .view-toggle button.active { background: #3b82f6; color: white; }
+    .view-toggle button:not(.active) { color: #64748b; }
+    .view-toggle button:not(.active):hover { background: #f1f5f9; }
+    
+    @media (max-width:900px) {
+      .panel-month { min-width: 0;}
+      .calendar-day { min-height: 80px; padding: 0.25rem; }
+      .calendar-guards { font-size: 0.6875rem; }
     }
   </style>
 </head>
@@ -107,6 +93,14 @@
       </div>
     </form>
 
+    <!-- View Toggle -->
+    <div id="viewToggleContainer" class="mb-4 flex justify-center" style="display: none;">
+      <div class="view-toggle flex">
+        <button id="tableViewBtn" class="active">Tampilan Tabel</button>
+        <button id="calendarViewBtn">Tampilan Kalender</button>
+      </div>
+    </div>
+
     <div id="filterBar" class="filter-bar mb-3 flex flex-wrap items-center no-print">
       <label>Bulan:
         <select id="filterBulan" class="border px-1 rounded"></select>
@@ -120,10 +114,10 @@
       <button id="exportGenerator" class="px-3 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-700 ml-2">Export Generator</button>
       <input type="file" id="importGenerator" accept=".json" class="ml-2 hidden"/>
       <button type="button" id="importGenBtn" class="px-3 py-1 text-xs bg-yellow-100 text-yellow-900 rounded hover:bg-yellow-200 border border-yellow-400 ml-1">Import Generator</button>
-      <button id="switchMarkdownCalBtn" class="px-3 py-1 text-xs bg-slate-600 text-white rounded hover:bg-slate-700 ml-2">Markdown Kalender</button>
     </div>
 
-    <div id="markdownCalendarView" class="mt-5"></div>
+    <div id="scheduleOut" class="overflow-x-auto"></div>
+    <!-- Notifikasi Minimalis -->
     <div id="notifToast" class="fixed left-1/2 bottom-7 z-50 px-4 py-2 rounded shadow-md border transition-all bg-white text-slate-700 text-sm"
       style="display:none;transform:translateX(-50%);min-width:180px;">
       <span id="notifToastMsg"></span>
@@ -136,8 +130,9 @@ let lastJadwal = [];
 let lastGroups = [];
 let lastMonths = [];
 let lastConfig = {};
-let lastView = 'markdown'; // default to markdown calendar
+let currentView = 'table'; // 'table' or 'calendar'
 
+// Notifikasi minimalis
 function showNotif(msg, variant = "success") {
   const toast = document.getElementById('notifToast');
   const msgSpan = document.getElementById('notifToastMsg');
@@ -162,6 +157,7 @@ function showNotif(msg, variant = "success") {
   }, 1800);
 }
 
+// Set tanggal selesai default 1 bulan dari tanggal mulai
 document.getElementById('startDate').addEventListener('change', function() {
   const start = this.value;
   if (!start) return;
@@ -174,17 +170,20 @@ document.getElementById('startDate').addEventListener('change', function() {
   document.getElementById('endDate').value = endDate.toISOString().slice(0,10);
 });
 
+// Format: "Rab, 25 Jun 2025"
 function formatTanggal(iso) {
   const hari = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
   const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
   let d = new Date(iso);
   return `${hari[d.getDay()]}, ${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
 }
+
 function formatBulanTahun(iso) {
   const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   let d = new Date(iso);
   return `${bulan[d.getMonth()]} ${d.getFullYear()}`;
 }
+
 function groupByMonth(jadwal) {
   let map = {};
   jadwal.forEach(row => {
@@ -194,12 +193,46 @@ function groupByMonth(jadwal) {
   });
   return map;
 }
+
 function padRows(arr, n) {
   let mod = arr.length % n;
   if (mod === 0) return arr.slice();
   let padded = arr.slice();
   for (let i=0; i < n-mod; i++) padded.push(null);
   return padded;
+}
+
+/* ==== View Toggle Functions ==== */
+function initViewToggle() {
+  const tableBtn = document.getElementById('tableViewBtn');
+  const calendarBtn = document.getElementById('calendarViewBtn');
+  const container = document.getElementById('viewToggleContainer');
+  
+  // Show toggle buttons when schedule is generated
+  container.style.display = 'flex';
+  
+  tableBtn.onclick = () => switchView('table');
+  calendarBtn.onclick = () => switchView('calendar');
+}
+
+function switchView(view) {
+  currentView = view;
+  const tableBtn = document.getElementById('tableViewBtn');
+  const calendarBtn = document.getElementById('calendarViewBtn');
+  
+  // Update button states
+  if (view === 'table') {
+    tableBtn.classList.add('active');
+    calendarBtn.classList.remove('active');
+  } else {
+    calendarBtn.classList.add('active');
+    tableBtn.classList.remove('active');
+  }
+  
+  // Re-render the schedule with the new view
+  if (lastJadwal.length > 0) {
+    renderScheduleOutput(lastJadwal, lastGroups);
+  }
 }
 
 /* ==== Hari Libur Picker ==== */
@@ -216,6 +249,7 @@ function renderHolidayPicker() {
     container.appendChild(badge);
   });
 }
+
 document.getElementById('addHolidayBtn').onclick = function() {
   const val = document.getElementById('holidayInput').value;
   if (val && !holidays.includes(val)) {
@@ -246,13 +280,12 @@ document.getElementById('resetBtn').onclick = function() {
   document.getElementById('groupList').value = '';
   holidays = [];
   renderHolidayPicker();
-  document.getElementById('markdownCalendarView').innerHTML = '';
-  document.getElementById('markdownCalendarView').style.display = '';
+  document.getElementById('scheduleOut').innerHTML = '';
+  document.getElementById('viewToggleContainer').style.display = 'none';
   lastJadwal = [];
   lastGroups = [];
   lastMonths = [];
   lastConfig = {};
-  lastView = 'markdown';
 };
 
 /* ==== Generate ==== */
@@ -263,6 +296,7 @@ document.getElementById('configForm').onsubmit = function(e) {
   const endDate = document.getElementById('endDate').value;
   let groups = document.getElementById('groupList').value.split('\n').map(g=>g.trim()).filter(Boolean);
   const orderType = document.querySelector('input[name="orderType"]:checked').value;
+  
   if (groups.length < 2) {
     showNotif('Minimal 2 regu diperlukan!', 'error');
     return;
@@ -271,6 +305,7 @@ document.getElementById('configForm').onsubmit = function(e) {
     showNotif('Tanggal mulai/selesai tidak valid!', 'error');
     return;
   }
+  
   const jadwal = generateSchedule(startDate, endDate, holidays, groups, orderType);
   lastJadwal = jadwal;
   lastGroups = groups;
@@ -278,10 +313,10 @@ document.getElementById('configForm').onsubmit = function(e) {
   lastConfig = {
     startDate, endDate, holidays:[...holidays], groups:[...groups], orderType
   };
+  
+  initViewToggle();
   renderFilterBar(jadwal, groups);
-  renderMarkdownCalendarView(lastJadwal);
-  document.getElementById('markdownCalendarView').style.display = '';
-  lastView = 'markdown';
+  renderScheduleOutput(jadwal, groups);
 };
 
 /* ==== Jadwal Generator with Fair Shuffle ==== */
@@ -293,16 +328,19 @@ function shuffleArray(arr) {
   }
   return a;
 }
+
 function generateSchedule(start, end, holidaysList, groupList, orderType) {
   let days = [];
   let cur = new Date(start);
   const endDate = new Date(end);
   holidaysList = holidaysList.slice();
+  
   while (cur <= endDate) {
     const iso = cur.toISOString().slice(0,10);
     days.push({date: iso, isHoliday: holidaysList.includes(iso)});
     cur.setDate(cur.getDate()+1);
   }
+  
   let schedule = [];
   if (orderType === 'manual') {
     let pool = groupList.slice();
@@ -329,6 +367,7 @@ function generateSchedule(start, end, holidaysList, groupList, orderType) {
     let pool = [];
     let poolIdx = 0;
     let last1=null, last2=null;
+    
     for (let i=0; i<days.length; i++) {
       if (days[i].isHoliday) {
         schedule.push({date: days[i].date, group1: 'Libur', group2: 'Libur', isHoliday:true});
@@ -376,90 +415,178 @@ function renderFilterBar(jadwal, groups) {
   grupSel.value = '';
   document.getElementById('filterLibur').checked = false;
 }
+
 document.getElementById('filterBulan').onchange =
 document.getElementById('filterGrup').onchange =
 document.getElementById('filterLibur').onchange = function() {
-  renderMarkdownCalendarView(lastJadwal);
+  renderScheduleOutput(lastJadwal, lastGroups);
 }
 
-/* ==== MARKDOWN KALENDER ==== */
-const hariShort = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
-const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-
-function getMonthDays(year, month) {
-  let first = new Date(year, month, 1);
-  let last = new Date(year, month + 1, 0);
-  let days = [];
-  for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
-    days.push({ year: d.getFullYear(), month: d.getMonth(), date: d.getDate(), day: d.getDay(), iso: d.toISOString().slice(0,10)});
+/* ==== Main Render Function ==== */
+function renderScheduleOutput(jadwal, allGroups) {
+  if (currentView === 'calendar') {
+    renderCalendarView(jadwal, allGroups);
+  } else {
+    renderScheduleTable(jadwal, allGroups);
   }
-  return days;
 }
 
-function renderMarkdownCalendarView(jadwal) {
+/* ==== Calendar View Functions ==== */
+function renderCalendarView(jadwal, allGroups) {
   const bulanVal = document.getElementById('filterBulan').value;
-  const ym = bulanVal || (jadwal.length ? jadwal[0].date.slice(0,7) : null);
-  if (!ym) {
-    document.getElementById('markdownCalendarView').innerHTML = '<div class="text-center py-10 text-slate-400">Tidak ada jadwal.</div>';
-    return;
-  }
-  const [y, m] = ym.split('-').map(Number);
-  const days = getMonthDays(y, m-1);
-
-  let mapJadwal = {};
-  jadwal.forEach(j => { mapJadwal[j.date] = j; });
-
-  // Build rows
-  let rows = [];
-  let week = [];
-  let firstDayIdx = days[0].day;
-  for (let i=0; i<firstDayIdx; i++) week.push(null);
-  days.forEach(d => {
-    week.push(d);
-    if (week.length===7) { rows.push(week); week=[]; }
+  const grupVal = document.getElementById('filterGrup').value;
+  const liburOnly = document.getElementById('filterLibur').checked;
+  
+  let filtered = jadwal.filter(j=>{
+    let byMonth = !bulanVal || j.date.slice(0,7)===bulanVal;
+    let byGrup = !grupVal || j.group1===grupVal || j.group2===grupVal;
+    let byLibur = !liburOnly || j.isHoliday;
+    return byMonth && byGrup && byLibur;
   });
-  if (week.length>0) {
-    while (week.length<7) week.push(null);
-    rows.push(week);
-  }
 
+  // Group by month for calendar display
+  let byMonth = groupByMonth(filtered);
+  let monthKeys = Object.keys(byMonth).sort();
+  
   let html = '';
-  html += `<div class="mb-3 text-center text-lg font-semibold">${bulan[m-1]} ${y}</div>`;
-  html += `<table class="markdown-calendar mb-8"><thead><tr>`;
-  hariShort.forEach(h => html += `<th>${h}</th>`);
-  html += `</tr></thead><tbody>`;
-
-  for (let r=0; r<rows.length; r++) {
-    // Row tanggal
-    html += `<tr>`;
-    for (let c=0; c<7; c++) {
-      let d = rows[r][c];
-      if (!d) { html += `<td></td>`; continue; }
-      html += `<td${(mapJadwal[d.iso] && mapJadwal[d.iso].isHoliday ? ' class="libur"' : '')}>`;
-      html += `<span class="tanggal">${d.date}</span>`;
-      html += `</td>`;
-    }
-    html += `</tr>`;
-    // Row isi regu/libur
-    html += `<tr>`;
-    for (let c=0; c<7; c++) {
-      let d = rows[r][c];
-      if (!d) { html += `<td></td>`; continue; }
-      let j = mapJadwal[d.iso];
-      if (!j) { html += `<td></td>`; continue; }
-      if (j.isHoliday || (j.group1==='Libur' && j.group2==='Libur')) {
-        html += `<td class="libur"><span class="icon-libur">🔴</span>Libur</td>`;
-      } else {
-        html += `<td>`;
-        html += `<span class="regu">${j.group1||''}</span>`;
-        if (j.group2) html += `<span class="regu2">${j.group2}</span>`;
-        html += `</td>`;
+  const today = new Date().toISOString().slice(0,10);
+  
+  for (let ym of monthKeys) {
+    const monthData = byMonth[ym];
+    const monthTitle = formatBulanTahun(monthData[0].date);
+    
+    // Create a map for quick lookup of schedule data
+    const scheduleMap = {};
+    monthData.forEach(row => {
+      scheduleMap[row.date] = row;
+    });
+    
+    // Generate calendar for this month
+    const [year, month] = ym.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const startCalendar = new Date(firstDay);
+    startCalendar.setDate(startCalendar.getDate() - firstDay.getDay());
+    
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    
+    html += `<div class="calendar-container">
+      <div class="calendar-header">${monthTitle}</div>
+      <div class="calendar-grid">`;
+    
+    // Day headers
+    days.forEach(day => {
+      html += `<div class="calendar-day-header">${day}</div>`;
+    });
+    
+    // Calendar days
+    const current = new Date(startCalendar);
+    while (current <= lastDay || current.getDay() !== 0) {
+      const dateStr = current.toISOString().slice(0,10);
+      const isCurrentMonth = current.getMonth() === month - 1;
+      const isToday = dateStr === today;
+      const scheduleData = scheduleMap[dateStr];
+      
+      let dayClass = 'calendar-day';
+      if (!isCurrentMonth) dayClass += ' other-month';
+      if (isToday) dayClass += ' today';
+      if (scheduleData?.isHoliday) dayClass += ' holiday';
+      
+      html += `<div class="${dayClass}">
+        <div class="calendar-date">${current.getDate()}</div>`;
+      
+      if (scheduleData && isCurrentMonth) {
+        html += '<div class="calendar-guards">';
+        if (scheduleData.isHoliday) {
+          html += '<div class="guard-item holiday">Libur</div>';
+        } else {
+          if (scheduleData.group1) {
+            html += `<div class="guard-item">${scheduleData.group1}</div>`;
+          }
+          if (scheduleData.group2 && scheduleData.group2 !== scheduleData.group1) {
+            html += `<div class="guard-item">${scheduleData.group2}</div>`;
+          }
+        }
+        html += '</div>';
+      }
+      
+      html += '</div>';
+      current.setDate(current.getDate() + 1);
+      
+      // Break if we've filled 6 weeks
+      if (current.getTime() - startCalendar.getTime() > 42 * 24 * 60 * 60 * 1000) {
+        break;
       }
     }
-    html += `</tr>`;
+    
+    html += '</div></div>';
   }
-  html += `</tbody></table>`;
-  document.getElementById('markdownCalendarView').innerHTML = html;
+  
+  document.getElementById('scheduleOut').innerHTML = html;
+}
+
+/* ==== Table View (Original) ==== */
+function renderScheduleTable(jadwal, allGroups) {
+  const bulanVal = document.getElementById('filterBulan').value;
+  const grupVal = document.getElementById('filterGrup').value;
+  const liburOnly = document.getElementById('filterLibur').checked;
+  
+  let filtered = jadwal.filter(j=>{
+    let byMonth = !bulanVal || j.date.slice(0,7)===bulanVal;
+    let byGrup = !grupVal || j.group1===grupVal || j.group2===grupVal;
+    let byLibur = !liburOnly || j.isHoliday;
+    return byMonth && byGrup && byLibur;
+  });
+
+  let byMonth = groupByMonth(filtered);
+  let monthKeys = Object.keys(byMonth);
+  if (grupVal) {
+    monthKeys = monthKeys.sort();
+  }
+  
+  let html = '';
+  for (let ym of monthKeys) {
+    const rows = byMonth[ym];
+    const monthTitle = formatBulanTahun(rows[0].date);
+
+    const COL_HEIGHT = 11;
+    let padded = padRows(rows, COL_HEIGHT);
+    let colCnt = padded.length / COL_HEIGHT;
+    let cols = [];
+    for (let c=0; c<colCnt; c++) {
+      cols.push(padded.slice(c*COL_HEIGHT, (c+1)*COL_HEIGHT));
+    }
+
+    html += `<div class="panel-month">
+      <div class="sticky-month">${monthTitle}</div>
+      <div class="overflow-x-auto"><table class="w-full text-xs"><tbody><tr>`;
+
+    for (let cc=0; cc<cols.length; cc++) {
+      html += `<td valign="top" colspan="3" style="padding:0;background:#f8fafc">
+        <table class="w-full text-xs" style="margin:0">
+          <thead>
+            <tr>
+              <th class="sticky-header">Tanggal</th>
+              <th class="sticky-header" colspan="2">Kelompok Jaga</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${cols[cc].map((row, ri)=>{
+              if (!row) return `<tr><td class="empty-cell"></td><td class="empty-cell"></td><td class="empty-cell"></td></tr>`;
+              let trClass = row.isHoliday ? 'holiday-row' : (ri%2===1 ? 'row-alt' : '');
+              return `<tr class="${trClass}">
+                <td>${formatTanggal(row.date)}</td>
+                <td>${row.group1}</td>
+                <td>${row.group2}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </td>`;
+    }
+    html += `</tr></tbody></table></div></div>`;
+  }
+  document.getElementById('scheduleOut').innerHTML = html;
 }
 
 /* ==== EXPORT XLSX/CSV ==== */
@@ -508,9 +635,11 @@ function getScheduleDataForExport() {
     row.group2
   ]);
 }
+
 document.getElementById('downloadXLSX').onclick = function() {
   exportToExcel();
 };
+
 document.getElementById('downloadCSV').onclick = function() {
   const rows = getScheduleDataForExport();
   if (!rows.length) return showNotif('Tidak ada data untuk diunduh!', 'error');
@@ -551,9 +680,11 @@ document.getElementById('exportGenerator').onclick = function() {
   URL.revokeObjectURL(url);
   showNotif('Berhasil export Generator!');
 };
+
 document.getElementById('importGenBtn').onclick = function() {
   document.getElementById('importGenerator').click();
 };
+
 document.getElementById('importGenerator').onchange = function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -572,10 +703,9 @@ document.getElementById('importGenerator').onchange = function(e) {
       lastJadwal = data.jadwal;
       lastGroups = data.config.groups || [];
       lastMonths = Array.from(new Set(lastJadwal.map(j=>j.date.slice(0,7))));
+      initViewToggle();
       renderFilterBar(lastJadwal, lastGroups);
-      renderMarkdownCalendarView(lastJadwal);
-      document.getElementById('markdownCalendarView').style.display = '';
-      lastView = 'markdown';
+      renderScheduleOutput(lastJadwal, lastGroups);
       showNotif('Berhasil import Generator!');
     } catch (e) {
       showNotif('File generator tidak valid!','error');
@@ -584,8 +714,8 @@ document.getElementById('importGenerator').onchange = function(e) {
   reader.readAsText(file);
   e.target.value = "";
 };
-
 </script>
+<!-- ExcelJS CDN for Excel Export -->
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 </body>
 </html>
