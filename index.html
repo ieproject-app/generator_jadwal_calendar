@@ -454,48 +454,75 @@ function renderCalendarView(jadwal, allGroups) {
   for (let ym of monthKeys) {
     const monthData = byMonth[ym];
     const monthTitle = formatBulanTahun(monthData[0].date);
-    
+
     // Create a map for quick lookup of schedule data
     const scheduleMap = {};
     monthData.forEach(row => {
       scheduleMap[row.date] = row;
     });
-    
-    // Generate calendar for this month
+
+    // Find the minimum and maximum date for the month (within start-end range!)
+    const allJadwalDates = monthData.map(row => row.date);
+    const minDate = allJadwalDates.length ? allJadwalDates[0] : ym + '-01';
+    const maxDate = allJadwalDates.length ? allJadwalDates[allJadwalDates.length - 1] : ym + '-28';
+
+    // Calendar grid config
     const [year, month] = ym.split('-').map(Number);
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0);
-    const startCalendar = new Date(firstDay);
-    startCalendar.setDate(startCalendar.getDate() - firstDay.getDay());
-    
+    const firstDayOfMonth = new Date(year, month - 1, 1);
+    const lastDayOfMonth = new Date(year, month, 0);
+    // Instead of always generating a full month, only generate from the minDate to maxDate in this data set (so calendar doesn't start from 26 if min is 25)
+    // But for a real calendar view, we should display the whole month grid, so that every month starts from the first Sunday (or Monday) and ends on the last Saturday (or Sunday)
+    // We'll use Sunday as the first day of the week (0)
+
+    // Find the earliest date to show in calendar grid (start from the Sunday before the first day of the month)
+    let gridStart = new Date(firstDayOfMonth);
+    gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+    // Find the last date to show in calendar grid (end on the Saturday after the last day of the month)
+    let gridEnd = new Date(lastDayOfMonth);
+    gridEnd.setDate(gridEnd.getDate() + (6 - gridEnd.getDay()));
+
+    // --- FIX: only show dates between minDate and maxDate in calendar (so calendar will be aligned with table view)
+    // Optionally: if minDate > first day of month, start gridStart at minDate's Sunday
+    let minDateObj = new Date(minDate);
+    let maxDateObj = new Date(maxDate);
+    if (minDateObj > gridStart) {
+      gridStart = new Date(minDateObj);
+      gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+    }
+    if (maxDateObj < gridEnd) {
+      gridEnd = new Date(maxDateObj);
+      gridEnd.setDate(gridEnd.getDate() + (6 - gridEnd.getDay()));
+    }
+    // ---
+
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    
+
     html += `<div class="calendar-container">
       <div class="calendar-header">${monthTitle}</div>
       <div class="calendar-grid">`;
-    
+
     // Day headers
     days.forEach(day => {
       html += `<div class="calendar-day-header">${day}</div>`;
     });
-    
+
     // Calendar days
-    const current = new Date(startCalendar);
-    while (current <= lastDay || current.getDay() !== 0) {
+    const current = new Date(gridStart);
+    while (current <= gridEnd) {
       const dateStr = current.toISOString().slice(0,10);
-      const isCurrentMonth = current.getMonth() === month - 1;
+      const isCurrentMonth = (current.getMonth() + 1) === month; // month is 1-based
       const isToday = dateStr === today;
       const scheduleData = scheduleMap[dateStr];
-      
+
       let dayClass = 'calendar-day';
       if (!isCurrentMonth) dayClass += ' other-month';
       if (isToday) dayClass += ' today';
       if (scheduleData?.isHoliday) dayClass += ' holiday';
-      
-      html += `<div class="${dayClass}">
-        <div class="calendar-date">${current.getDate()}</div>`;
-      
-      if (scheduleData && isCurrentMonth) {
+
+      html += `<div class="${dayClass}">`;
+      html += `<div class="calendar-date">${current.getDate()}</div>`;
+
+      if (scheduleData) {
         html += '<div class="calendar-guards">';
         if (scheduleData.isHoliday) {
           html += '<div class="guard-item holiday">Libur</div>';
@@ -509,16 +536,10 @@ function renderCalendarView(jadwal, allGroups) {
         }
         html += '</div>';
       }
-      
+
       html += '</div>';
       current.setDate(current.getDate() + 1);
-      
-      // Break if we've filled 6 weeks
-      if (current.getTime() - startCalendar.getTime() > 42 * 24 * 60 * 60 * 1000) {
-        break;
-      }
     }
-    
     html += '</div></div>';
   }
   
